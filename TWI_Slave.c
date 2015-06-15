@@ -112,7 +112,7 @@ uint16_t EEMEM Brennerlaufzeit;	// Akkumulierte Laufzeit
 
 void delay_ms(unsigned int ms);
 
-uint8_t Buerostatus=0x00;
+uint8_t buerostatus=0x00;
 
 volatile uint16_t Servotakt=20;					//	Abstand der Impulspakete
 volatile uint16_t Servopause=0x00;				//	Zaehler fuer Pause
@@ -329,535 +329,483 @@ ISR(TIMER2_COMP_vect) // Schaltet Impuls an SERVOPIN0 aus
 
 void main (void) 
 {
-	/* 
-	in Start-loop in while
-	init_twi_slave (SLAVE_ADRESSE);
-	sei();
-	*/
-	slaveinit();
-	//PORT2 |=(1<<PC4);
-	//PORTC |=(1<<PC5);
-	
-	//uint16_t ADC_Wert= readKanal(0);
-		
-	/* initialize the LCD */
-	lcd_initialize(LCD_FUNCTION_8x2, LCD_CMD_ENTRY_INC, LCD_CMD_ON);
-
-	lcd_puts("Guten Tag\0");
-	delay_ms(1000);
-	lcd_cls();
-	lcd_puts("READY\0");
-	
-	BUEROPORT &= ~(1<<UHREIN);//	UHREIN sicher low
-	BUEROPORT &= ~(1<<UHRAUS);//	UHRAus sicher low
-	BUEROPORT |= (1<<UHRAUS);
-	delay_ms(10);
-	BUEROPORT &= ~(1<<UHRAUS);
-
-	uint8_t Tastenwert=0;
-	uint8_t TastaturCount=0;
-	uint8_t Servowert=0;
-	uint8_t Servorichtung=1;
-	
-	uint16_t TastenStatus=0;
-	uint16_t Tastencount=0;
-	uint16_t Tastenprellen=0x01F;
-	uint8_t Schalterposition=0;
-	//timer0();
-	
-	//initADC(TASTATURPIN);
-	//wdt_enable(WDTO_2S);
-	
-	uint16_t loopcount0=0;
-	uint16_t startdelay0=0x01FF;
-	//uint16_t startdelay1=0;
-
-	uint16_t twi_LO_count0=0;
-	uint16_t twi_LO_count1=0;
-
-
-	//uint8_t twierrcount=0;
-	LOOPLEDPORT |=(1<<LOOPLED);
-	
-	delay_ms(800);
-	//eeprom_write_byte(&WDT_ErrCount0,0);
-	uint8_t eepromWDT_Count0=eeprom_read_byte(&WDT_ErrCount0);
-//	uint8_t eepromWDT_Count1=eeprom_read_byte(&WDT_ErrCount1);
-	uint16_t twi_HI_count0=0;
-
-	if (eepromWDT_Count0==0xFF)
-	{
-		eepromWDT_Count0=0;
-	
-	}
-
-		/*
-	Bit 0: 1 wenn wdt ausgelšst wurde
-	 
-	  */ 
-	while (1)
-	{	
-		//Blinkanzeige
-		loopcount0++;
-		if (loopcount0==0xBFFF)
-		{
-			loopcount0=0;
-			LOOPLEDPORT ^=(1<<LOOPLED);
-			//delay_ms(10);
-			
-		}
-
-				
-		
-		/**	Beginn Startroutinen	***********************/
-		// wenn Startbedingung vom Master:  TWI_slave initiieren
-		if (SlaveStatus & (1<<TWI_WAIT_BIT)) 
-		{
-			if ((TWI_PIN & (1<<SCLPIN))&&(!(TWI_PIN & (1<<SDAPIN))))// Startbedingung vom Master: SCL HI und SDA LO
-			{
-			init_twi_slave (SLAVE_ADRESSE);
-			sei();
-			SlaveStatus &= ~(1<<TWI_WAIT_BIT);
-			SlaveStatus |= (1<<TWI_OK_BIT); // TWI ist ON
-			
-			// StartDelayBit zuruecksetzen
-			
-			}
-		}
-
-		/**	Ende Startroutinen	***********************/
-		
-		
-		/* **** rx_buffer abfragen **************** */
-		//rxdata=0;
-		
-		
-		//	Schaltuhr
-		
-	
-		if ((SlaveStatus & (1<<TWI_OK_BIT)) && (rxdata))
-		{
-			//lcd_cls();
-			//lcd_gotoxy(7,1);
-			//lcd_puthex(twi);
-			//lcd_puthex(rxbuffer[0]);
-			//lcd_puthex(rxbuffer[1]);
-			//PORTD |=(1<<PD3);
-
-			{
-				//
-				
-				if (rxbuffer[3] < 6)
-				
-				{
-					
-					if (Servorichtung) // vorwŠrts
-					{
-							Servowert++;
-							if (Servowert==4)
-							{
-							Servorichtung=0;
-							}
-						
-					}
-					else
-					{
-						
-							Servowert--;
-							if (Servowert==0)
-							{
-							Servorichtung=1;
-							}
-						
-						
-						
-						
-					}
-					/*
-					lcd_gotoxy(0,12);
-					lcd_puts("R:\0");
-					lcd_putint2(Servorichtung);
-					lcd_puts(" W:\0");
-					lcd_putint2(Servowert);
-					*/
-					
-					
-					Servowert=rxbuffer[3];
-					
-					ServoimpulsdauerPuffer=Servoposition[Servowert];
-						
-				}
-				
-				/*
-				lcd_gotoxy(0,0);
-				lcd_puts("I:\0");
-				lcd_putint2(Servoimpulsdauer);
-				//lcd_gotoxy(8,0);
-				//lcd_gotoxy(0,1);
-				lcd_puts(" P:\0");
-				lcd_putint2(ServoimpulsdauerPuffer);
-				
-				lcd_puts(" S:\0");
-				lcd_putint2(ServoimpulsdauerSpeicher);
-				
-				lcd_puts(" O:\0");
-				lcd_putint1(ServoimpulsOK);
-				SERVOPORT &= ~(1<<SERVOPIN1);//	SERVOPIN1 zuruecksetzen: Servo aus
-				
-				if (!(ServoimpulsdauerPuffer==Servoimpulsdauer))	//	neuer Wert ist anders als aktuelle Impulsdauer
-				{
-					if (ServoimpulsdauerPuffer==ServoimpulsdauerSpeicher)	// neuer Wert ist schon im Speicher
-					{
-						ServoimpulsOK++;	//	Zaehler der gleichen Impulse incr
-					}
-					else
-					{
-						ServoimpulsdauerSpeicher=ServoimpulsdauerPuffer;
-						ServoimpulsOK=0;	//	Zaehler der gleichen Impulse zuruecksetzen
-						
-					}
-					
-				}//
-				else
-				{
-					ServoimpulsOK=0;	//Ausreisser
-				}
-				
-				if (ServoimpulsOK>3)	//	neuer Wert ist sicher
-				{
-					SERVOPORT |= (1<<SERVOPIN1);//	SERVOPIN1 setzen: Servo ein
-					
-					if (ServoimpulsdauerSpeicher>Servoimpulsdauer)
-					{
-						Servoimpulsdauer=ServoimpulsdauerSpeicher+2; //	Etwas weiter im UZ drehen
-						delay_ms(800);
-						//Servoimpulsdauer=ServoimpulsdauerSpeicher-2;
-						//delay_ms(400);
-						
-					}
-					else
-					{
-						Servoimpulsdauer=ServoimpulsdauerSpeicher-2; //	Etwas weiter gegen UZ drehen
-						delay_ms(800);
-						//Servoimpulsdauer=ServoimpulsdauerSpeicher+2;
-						//delay_ms(400);
-						
-					}
-					
-					Servoimpulsdauer=ServoimpulsdauerSpeicher;
-					
-					ServoimpulsOK=0;
-				}
-				
-				*/
-			
-			}
-			
-			//RingD2(2);
-			//delay_ms(20);
-			
-			Buerostatus=rxbuffer[0];
-			lcd_gotoxy(0,1);
-			//cli();
-			lcd_puts("St:\0");
-			lcd_puthex(Buerostatus);
-			//sei();
-			//delay_ms(1000);
-			if ( Buerostatus  & (1<<UHRPIN))
-				{
-					//delay_ms(1000);
-					//Schaltuhr ein
-					//cli();
-					lcd_gotoxy(19,1);
-					lcd_putc('1');
-					//sei();
-					BUEROPORT &= ~(1<<UHRAUS);//	UHRAUS sicher low
-					BUEROPORT &= ~(1<<UHREIN);//	UHREIN sicher low
-					BUEROPORT |= (1<<UHREIN);
-					delay_ms(20);
-					BUEROPORT &= ~(1<<UHREIN);
-				}
-				else
-				{
-					//delay_ms(1000);
-					//Schaltuhr aus
-					//cli();
-					lcd_gotoxy(19,1);
-					lcd_putc('0');
-					//sei();
-					BUEROPORT &= ~(1<<UHREIN);//	UHREIN sicher low
-					BUEROPORT &= ~(1<<UHRAUS);//	UHRAUS sicher low
-					BUEROPORT |= (1<<UHRAUS);
-					delay_ms(20);
-					BUEROPORT &= ~(1<<UHRAUS);
-				}
-			
-			
-			// tx_buffer laden
-				
-				// Temperatur lesen
-				initADC(AUSSEN);
-				uint16_t temperaturBuffer=(readKanal(AUSSEN));
-				lcd_gotoxy(0,0);
-				lcd_puts("A \0");
-				//lcd_puthex(temperaturBuffer>>2);
-				
-				// neues Thermometer
-				//lcd_putint(temperaturBuffer>>2);
-				lcd_put_tempAbMinus20((temperaturBuffer>>2)); 
-				//lcd_puts("A0+\0");
-				//lcd_put_tempbis99(temperaturBuffer>>1);//Doppelte Auflšsung				
-				txbuffer[AUSSEN]=(temperaturBuffer>>2);
-				//	initADC(RUECKLAUF);
-
-				//txbuffer[RUECKLAUF]=temperaturBuffer>>2;
-
-				
-				
-
-				
-				//	PIN B4 abfragen
-				txbuffer[4]=(PINB & (1<< 4));
-			
-			
-			
-			
-			
-			rxdata=0;
-			PORTD &= ~(1<<PD3);
-
-		}
-		
-		
-		
-		if (!(PINB & (1<<PB0))) // Taste 0
-		{
-			//lcd_gotoxy(12,1);
-			//lcd_puts("P0 Down\0");
-			
-			if (! (TastenStatus & (1<<PB0))) //Taste 0 war nich nicht gedrueckt
-			{
-				//RingD2(5);
-				TastenStatus |= (1<<PB0);
-				Tastencount=0;
-				//lcd_gotoxy(0,1);
-				//lcd_puts("P0 \0");
-				//lcd_putint(TastenStatus);
-				//delay_ms(800);
-			}
-			else
-			{
-				
-				
-				Tastencount ++;
-				//lcd_gotoxy(7,1);
-				//lcd_puts("TC \0");
-				//lcd_putint(Tastencount);
-				
-				if (Tastencount >= Tastenprellen)
-				{
-					if (Servowert<4)
-					{
-						Servowert++;
-						Servoimpulsdauer=Servoposition[Servowert];
-						
-					}
-					/*
-					 if (Servoimpulsdauer<61)
-					 {
-					 Servoimpulsdauer++;
-					 SERVOPORT |= (1<<SERVOPIN1);//	SERVOPIN1 setzen: Servo ein
-					 lcd_gotoxy(0,1);
-					 //lcd_puts("P0 down  \0");
-					 lcd_putint2(Servoimpulsdauer);
-					 
-					 }
-					 */
-					Tastencount=0;
-					TastenStatus &= ~(1<<PB0);
-				}
-			}//else
-			
-		}	// Taste 0
-		
-		
-		if (!(PINB & (1<<PB1))) // Taste 1
-		{
-			//lcd_gotoxy(12,1);
-			//lcd_puts("P1 Down\0");
-			
-			if (! (TastenStatus & (1<<PB1))) //Taste 1 war nicht nicht gedrueckt
-			{
-				TastenStatus |= (1<<PB1);
-				Tastencount=0;
-				//lcd_gotoxy(3,1);
-				//lcd_puts("P1 \0");
-				//lcd_putint(Servoimpulsdauer);
-				//delay_ms(800);
-				
-			}
-			else
-			{
-				//lcd_gotoxy(3,1);
-				//lcd_puts("       \0");
-				
-				Tastencount ++;
-				if (Tastencount >= Tastenprellen)
-				{
-					
-					if (Servowert > 0)
-					{
-						Servowert--;
-						Servoimpulsdauer=Servoposition[Servowert];
-						
-					}
-					
-					
-					if (Servoimpulsdauer>19)
-					{
-						Servoimpulsdauer--;
-						SERVOPORT |= (1<<SERVOPIN1);//	SERVOPIN1 setzen: Servo ein
-						
-						lcd_gotoxy(0,1);
-						lcd_putint2(Servoimpulsdauer);
-					}
-					Tastencount=0;
-					TastenStatus &= ~(1<<PB1);
-				}
-			}//	else
-			
-		} // Taste 1
-		
-		/* ******************** */
-		//		initADC(TASTATURPIN);
-		//		Tastenwert=(uint8_t)(readKanal(TASTATURPIN)>>2);
-		
-		Tastenwert=0;
-		
-		//lcd_gotoxy(3,1);
-		//lcd_putint(Tastenwert);
-		
-		if (Tastenwert>23)
-		{
-			/*
-			 0: 
-			 1: 
-			 2: 
-			 3: 
-			 4: 
-			 5: 
-			 6: 
-			 7: 
-			 8: 
-			 9: 
-			 */
-			
-			TastaturCount++;
-			if (TastaturCount>=50)
-			{
-				
-				//lcd_clr_line(1);
-//				lcd_gotoxy(8,1);
-//				lcd_puts("T:\0");
-//				lcd_putint(Tastenwert);
-				
-				uint8_t Taste=Tastenwahl(Tastenwert);
-				
-				lcd_gotoxy(18,1);
-				lcd_putint2(Taste);
-				//delay_ms(600);
-				// lcd_clr_line(1);
-				
-				
-				TastaturCount=0;
-				Tastenwert=0x00;
-				uint8_t i=0;
-				uint8_t pos=0;
-				
-				switch (Taste)
-				{
-					case 0://
-					{ 
-						
-					}break;
-						
-					case 1://
-					{ 
-					}break;
-						
-					case 2://
-					{ 
-						
-					}break;
-						
-					case 3://
-					{ 
-						
-					}break;
-						
-					case 4://
-					{ 
-						if (Schalterposition)
-						{
-							Schalterposition--;
-							Servoimpulsdauer=Servoposition[Schalterposition];
-						}
-						
-					}break;
-						
-					case 5://
-					{ 
-						
-						Schalterposition=0;
-						Servoimpulsdauer=Servoposition[Schalterposition];
-						
-					}break;
-						
-					case 6://
-					{ 
-						if (Schalterposition<4)
-						{
-							Schalterposition++;
-							Servoimpulsdauer=Servoposition[Schalterposition];
-						}
-					}break;
-						
-					case 7://
-					{ 
-						if (Servoimpulsdauer>Servoposition[0])
-						{
-							Servoimpulsdauer--;
-							lcd_gotoxy(0,16);
-							lcd_putint2(Servoimpulsdauer);
-						}
-						
-					}break;
-						
-					case 8://
-					{ 
-						
-					}break;
-						
-					case 9://
-					{ 
-						if (Servoimpulsdauer<Servoposition[4])
-						{
-							Servoimpulsdauer++;
-							lcd_gotoxy(0,2);
-							lcd_putint2(Servoimpulsdauer);
-						}
-					}break;
-						
-						
-				}//switch Tastatur
-				SERVOPORT |= (1<<SERVOPIN1);//	SERVOPIN1 setzen: Servo ein
-			}//if TastaturCount	
-			
-		}//	if Tastenwert
-		
-		//	LOOPLEDPORT &= ~(1<<LOOPLED);
-	}//while
-
-
-// return 0;
+   /*
+    in Start-loop in while
+    init_twi_slave (SLAVE_ADRESSE);
+    sei();
+    */
+   
+   wdt_disable();
+   MCUSR &= ~(1<<WDRF);
+   wdt_reset();
+   WDTCR |= (1<<WDCE) | (1<<WDE);
+   WDTCR = 0x00;
+   
+   slaveinit();
+   //PORT2 |=(1<<PC4);
+   //PORTC |=(1<<PC5);
+   
+   //uint16_t ADC_Wert= readKanal(0);
+   
+   /* initialize the LCD */
+   lcd_initialize(LCD_FUNCTION_8x2, LCD_CMD_ENTRY_INC, LCD_CMD_ON);
+   
+   lcd_puts("Guten Tag\0");
+   delay_ms(1000);
+   lcd_cls();
+   lcd_puts("BUERO\0");
+   
+   BUEROPORT &= ~(1<<UHREIN);//	UHREIN sicher low
+   BUEROPORT &= ~(1<<UHRAUS);//	UHRAus sicher low
+   BUEROPORT |= (1<<UHRAUS);
+   delay_ms(10);
+   BUEROPORT &= ~(1<<UHRAUS);
+   
+   uint8_t Tastenwert=0;
+   uint8_t TastaturCount=0;
+   uint8_t Servowert=0;
+   uint8_t Servorichtung=1;
+   
+   uint16_t TastenStatus=0;
+   uint16_t Tastencount=0;
+   uint16_t Tastenprellen=0x01F;
+   uint8_t Schalterposition=0;
+   //timer0();
+   
+   //initADC(TASTATURPIN);
+   //wdt_enable(WDTO_2S);
+   
+   uint16_t loopcount0=0;
+   uint16_t startdelay0=0x01FF;
+   //uint16_t startdelay1=0;
+   
+   uint16_t twi_LO_count0=0;
+   uint16_t twi_LO_count1=0;
+   
+   
+   //uint8_t twierrcount=0;
+   LOOPLEDPORT |=(1<<LOOPLED);
+   
+   delay_ms(800);
+   //eeprom_write_byte(&WDT_ErrCount0,0);
+   uint8_t eepromWDT_Count0=eeprom_read_byte(&WDT_ErrCount0);
+   //	uint8_t eepromWDT_Count1=eeprom_read_byte(&WDT_ErrCount1);
+   uint16_t twi_HI_count0=0;
+   
+   if (eepromWDT_Count0==0xFF)
+   {
+      eepromWDT_Count0=0;
+      
+   }
+   
+   /*
+    Bit 0: 1 wenn wdt ausgelšst wurde
+    
+    */
+   while (1)
+   {
+      //Blinkanzeige
+      loopcount0++;
+      if (loopcount0==0xFFFF)
+      {
+         loopcount0=0;
+         LOOPLEDPORT ^=(1<<LOOPLED);
+         //delay_ms(10);
+         
+      }
+      
+      
+      
+      /**	Beginn Startroutinen	***********************/
+      // wenn Startbedingung vom Master:  TWI_slave initiieren
+      if (SlaveStatus & (1<<TWI_WAIT_BIT))
+      {
+         if ((TWI_PIN & (1<<SCLPIN))&&(!(TWI_PIN & (1<<SDAPIN))))// Startbedingung vom Master: SCL HI und SDA LO
+         {
+            init_twi_slave (SLAVE_ADRESSE);
+            sei();
+            SlaveStatus &= ~(1<<TWI_WAIT_BIT);
+            SlaveStatus |= (1<<TWI_OK_BIT); // TWI ist ON
+            
+            // StartDelayBit zuruecksetzen
+            
+         }
+      }
+      
+      
+      /**	Ende Startroutinen	***********************/
+      
+      
+      /* **** rx_buffer abfragen **************** */
+      //rxdata=0;
+      
+      
+      //	Schaltuhr
+      
+      
+      if ((SlaveStatus & (1<<TWI_OK_BIT)) && (rxdata))
+      {
+         /*
+          lcd_cls();
+          lcd_gotoxy(7,1);
+          lcd_puthex(twi);
+          lcd_puthex(rxbuffer[0]);
+          lcd_puthex(rxbuffer[1]);
+          
+          */
+         
+         {
+            //
+            
+            if (rxbuffer[3] < 6)
+               
+            {
+               
+               if (Servorichtung) // vorwŠrts
+               {
+                  Servowert++;
+                  if (Servowert==4)
+                  {
+                     Servorichtung=0;
+                  }
+                  
+               }
+               else
+               {
+                  
+                  Servowert--;
+                  if (Servowert==0)
+                  {
+                     Servorichtung=1;
+                  }
+                  
+                  
+                  
+                  
+               }
+               /*
+                lcd_gotoxy(0,12);
+                lcd_puts("R:\0");
+                lcd_putint2(Servorichtung);
+                lcd_puts(" W:\0");
+                lcd_putint2(Servowert);
+                */
+               
+               
+               Servowert=rxbuffer[3];
+               
+               ServoimpulsdauerPuffer=Servoposition[Servowert];
+               
+            }
+            
+         }
+         
+         //RingD2(2);
+         //delay_ms(20);
+         
+         buerostatus=rxbuffer[0];
+         lcd_gotoxy(0,1);
+         //cli();
+         lcd_puts("St:\0");
+         lcd_puthex(buerostatus);
+         //sei();
+         //delay_ms(1000);
+         if ( buerostatus  & (1<<UHRPIN))
+         {
+            //delay_ms(1000);
+            //Schaltuhr ein
+            //cli();
+            lcd_gotoxy(19,1);
+            lcd_putc('1');
+            //sei();
+            BUEROPORT &= ~(1<<UHRAUS);//	UHRAUS sicher low
+            BUEROPORT &= ~(1<<UHREIN);//	UHREIN sicher low
+            BUEROPORT |= (1<<UHREIN);
+            delay_ms(20);
+            BUEROPORT &= ~(1<<UHREIN);
+         }
+         else
+         {
+            //delay_ms(1000);
+            //Schaltuhr aus
+            //cli();
+            lcd_gotoxy(19,1);
+            lcd_putc('0');
+            //sei();
+            BUEROPORT &= ~(1<<UHREIN);//	UHREIN sicher low
+            BUEROPORT &= ~(1<<UHRAUS);//	UHRAUS sicher low
+            BUEROPORT |= (1<<UHRAUS);
+            delay_ms(20);
+            BUEROPORT &= ~(1<<UHRAUS);
+         }
+         
+         
+         // tx_buffer laden
+         
+         // Temperatur lesen
+         initADC(AUSSEN);
+         uint16_t temperaturBuffer=(readKanal(AUSSEN));
+         lcd_gotoxy(0,0);
+         lcd_puts("A \0");
+         //lcd_puthex(temperaturBuffer>>2);
+         
+         // neues Thermometer
+         //lcd_putint(temperaturBuffer>>2);
+         lcd_put_tempAbMinus20((temperaturBuffer>>2));
+         //lcd_puts("A0+\0");
+         //lcd_put_tempbis99(temperaturBuffer>>1);//Doppelte Auflšsung
+         txbuffer[AUSSEN]=(temperaturBuffer>>2);
+         //txbuffer[AUSSEN]=0x37;
+         //	initADC(RUECKLAUF);
+         
+         //txbuffer[RUECKLAUF]=temperaturBuffer>>2;
+         
+         
+         
+         
+         
+         //	PIN B4 abfragen
+         txbuffer[4]=(PINB & (1<< 4));
+         
+         
+         
+         
+         
+         rxdata=0;
+         
+         
+      }
+      
+      
+      
+      if (!(PINB & (1<<PB0))) // Taste 0
+      {
+         //lcd_gotoxy(12,1);
+         //lcd_puts("P0 Down\0");
+         
+         if (! (TastenStatus & (1<<PB0))) //Taste 0 war nich nicht gedrueckt
+         {
+            //RingD2(5);
+            TastenStatus |= (1<<PB0);
+            Tastencount=0;
+            //lcd_gotoxy(0,1);
+            //lcd_puts("P0 \0");
+            //lcd_putint(TastenStatus);
+            //delay_ms(800);
+         }
+         else
+         {
+            
+            
+            Tastencount ++;
+            //lcd_gotoxy(7,1);
+            //lcd_puts("TC \0");
+            //lcd_putint(Tastencount);
+            
+            if (Tastencount >= Tastenprellen)
+            {
+               if (Servowert<4)
+               {
+                  Servowert++;
+                  Servoimpulsdauer=Servoposition[Servowert];
+                  
+               }
+               /*
+                if (Servoimpulsdauer<61)
+                {
+                Servoimpulsdauer++;
+                SERVOPORT |= (1<<SERVOPIN1);//	SERVOPIN1 setzen: Servo ein
+                lcd_gotoxy(0,1);
+                //lcd_puts("P0 down  \0");
+                lcd_putint2(Servoimpulsdauer);
+                
+                }
+                */
+               Tastencount=0;
+               TastenStatus &= ~(1<<PB0);
+            }
+         }//else
+         
+      }	// Taste 0
+      
+      
+      if (!(PINB & (1<<PB1))) // Taste 1
+      {
+         //lcd_gotoxy(12,1);
+         //lcd_puts("P1 Down\0");
+         
+         if (! (TastenStatus & (1<<PB1))) //Taste 1 war nicht nicht gedrueckt
+         {
+            TastenStatus |= (1<<PB1);
+            Tastencount=0;
+            //lcd_gotoxy(3,1);
+            //lcd_puts("P1 \0");
+            //lcd_putint(Servoimpulsdauer);
+            //delay_ms(800);
+            
+         }
+         else
+         {
+            //lcd_gotoxy(3,1);
+            //lcd_puts("       \0");
+            
+            Tastencount ++;
+            if (Tastencount >= Tastenprellen)
+            {
+               
+               if (Servowert > 0)
+               {
+                  Servowert--;
+                  Servoimpulsdauer=Servoposition[Servowert];
+                  
+               }
+               
+               
+               if (Servoimpulsdauer>19)
+               {
+                  Servoimpulsdauer--;
+                  SERVOPORT |= (1<<SERVOPIN1);//	SERVOPIN1 setzen: Servo ein
+                  
+                  lcd_gotoxy(0,1);
+                  lcd_putint2(Servoimpulsdauer);
+               }
+               Tastencount=0;
+               TastenStatus &= ~(1<<PB1);
+            }
+         }//	else
+         
+      } // Taste 1
+      
+      /* ******************** */
+      //		initADC(TASTATURPIN);
+      //		Tastenwert=(uint8_t)(readKanal(TASTATURPIN)>>2);
+      
+      Tastenwert=0;
+      
+      //lcd_gotoxy(3,1);
+      //lcd_putint(Tastenwert);
+      
+      if (Tastenwert>23)
+      {
+         /*
+          0: 
+          1: 
+          2: 
+          3: 
+          4: 
+          5: 
+          6: 
+          7: 
+          8: 
+          9: 
+          */
+         
+         TastaturCount++;
+         if (TastaturCount>=50)
+         {
+            
+            //lcd_clr_line(1);
+            //				lcd_gotoxy(8,1);
+            //				lcd_puts("T:\0");
+            //				lcd_putint(Tastenwert);
+            
+            uint8_t Taste=Tastenwahl(Tastenwert);
+            
+            lcd_gotoxy(18,1);
+            lcd_putint2(Taste);
+            //delay_ms(600);
+            // lcd_clr_line(1);
+            
+            
+            TastaturCount=0;
+            Tastenwert=0x00;
+            uint8_t i=0;
+            //uint8_t pos=0;
+            
+            switch (Taste)
+            {
+               case 0://
+               { 
+                  
+               }break;
+                  
+               case 1://
+               { 
+               }break;
+                  
+               case 2://
+               { 
+                  
+               }break;
+                  
+               case 3://
+               { 
+                  
+               }break;
+                  
+               case 4://
+               { 
+                  if (Schalterposition)
+                  {
+                     Schalterposition--;
+                     Servoimpulsdauer=Servoposition[Schalterposition];
+                  }
+                  
+               }break;
+                  
+               case 5://
+               { 
+                  
+                  Schalterposition=0;
+                  Servoimpulsdauer=Servoposition[Schalterposition];
+                  
+               }break;
+                  
+               case 6://
+               { 
+                  if (Schalterposition<4)
+                  {
+                     Schalterposition++;
+                     Servoimpulsdauer=Servoposition[Schalterposition];
+                  }
+               }break;
+                  
+               case 7://
+               { 
+                  if (Servoimpulsdauer>Servoposition[0])
+                  {
+                     Servoimpulsdauer--;
+                     lcd_gotoxy(0,16);
+                     lcd_putint2(Servoimpulsdauer);
+                  }
+                  
+               }break;
+                  
+               case 8://
+               { 
+                  
+               }break;
+                  
+               case 9://
+               { 
+                  if (Servoimpulsdauer<Servoposition[4])
+                  {
+                     Servoimpulsdauer++;
+                     lcd_gotoxy(0,2);
+                     lcd_putint2(Servoimpulsdauer);
+                  }
+               }break;
+                  
+                  
+            }//switch Tastatur
+            SERVOPORT |= (1<<SERVOPIN1);//	SERVOPIN1 setzen: Servo ein
+         }//if TastaturCount	
+         
+      }//	if Tastenwert
+      
+      //	LOOPLEDPORT &= ~(1<<LOOPLED);
+   }//while
+   
+   
+   // return 0;
 }
