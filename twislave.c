@@ -197,8 +197,8 @@ ISR (TWI_vect)
 	wdt_reset();
 	uint8_t data=0;
 	//		BlinkD3(2);
-	lcd_cls();
-	lcd_puts("ISR\0");
+	//lcd_cls();
+	//lcd_puts("ISR\0");
 	//lcd_puthex(TW_STATUS);
 	//twidelay_ms(lcd_delay);
 	TWI_Pause=0; // Servo ausschalten

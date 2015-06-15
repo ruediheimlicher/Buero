@@ -23,7 +23,7 @@
 #include "adc.c"
 
 //***********************************
-//Labor							*
+//Buero							*
 #define SLAVE_ADRESSE 0x62 //		*
 //									*
 //***********************************
@@ -55,7 +55,7 @@
 //#define UHREIN 4
 //#define UHRAUS 5
 
-// Definitionen Slave Labor
+// Definitionen Slave Buero
 #define UHREIN 0
 #define UHRAUS 1
 
@@ -112,7 +112,7 @@ uint16_t EEMEM Brennerlaufzeit;	// Akkumulierte Laufzeit
 
 void delay_ms(unsigned int ms);
 
-uint8_t Laborstatus=0x00;
+uint8_t Buerostatus=0x00;
 
 volatile uint16_t Servotakt=20;					//	Abstand der Impulspakete
 volatile uint16_t Servopause=0x00;				//	Zaehler fuer Pause
@@ -190,9 +190,6 @@ void slaveinit(void)
  	DDRD |= (1<<SERVOPIN1);	//Pin 6 von PORT D als Ausgang fuer Servo-Enable
 	DDRD |= (1<<SERVOPIN0);	//Pin 7 von PORT D als Ausgang fuer Servo-Impuls
 	
-	PORTD |=(1<<PD0);
-	delay_ms(200);
-	PORTD &= ~(1<<PD0);
 	
 	DDRB &= ~(1<<PB0);	//Bit 0 von PORT B als Eingang fŸr Taste 1
 	PORTB |= (1<<PB0);	//Pull-up
@@ -440,12 +437,12 @@ void main (void)
 	
 		if ((SlaveStatus & (1<<TWI_OK_BIT)) && (rxdata))
 		{
-			lcd_cls();
-			lcd_gotoxy(7,1);
-			lcd_puthex(twi);
-			lcd_puthex(rxbuffer[0]);
-			lcd_puthex(rxbuffer[1]);
-			PORTD |=(1<<PD3);
+			//lcd_cls();
+			//lcd_gotoxy(7,1);
+			//lcd_puthex(twi);
+			//lcd_puthex(rxbuffer[0]);
+			//lcd_puthex(rxbuffer[1]);
+			//PORTD |=(1<<PD3);
 
 			{
 				//
@@ -559,14 +556,14 @@ void main (void)
 			//RingD2(2);
 			//delay_ms(20);
 			
-			Laborstatus=rxbuffer[0];
+			Buerostatus=rxbuffer[0];
 			lcd_gotoxy(0,1);
 			//cli();
 			lcd_puts("St:\0");
-			lcd_puthex(Laborstatus);
+			lcd_puthex(Buerostatus);
 			//sei();
 			//delay_ms(1000);
-			if ( Laborstatus  & (1<<UHRPIN))
+			if ( Buerostatus  & (1<<UHRPIN))
 				{
 					//delay_ms(1000);
 					//Schaltuhr ein

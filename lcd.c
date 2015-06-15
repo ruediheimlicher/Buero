@@ -610,8 +610,8 @@ void lcd_put_temperatur(uint16_t temperatur)
 		//uint16_t temp=(temperatur-127)*5;
 		uint16_t temp=temperatur*5;
 //		uint16_t temp=temperatur;
-		lcd_gotoxy(0,1);
-		lcd_putint16(temp);
+		//lcd_gotoxy(0,1);
+		//lcd_putint16(temp);
 
 //		itoa(temp, buffer,10);
 		r_itoa16(temp,buffer);
@@ -704,8 +704,8 @@ void lcd_put_tempbis99(uint16_t temperatur)
 		lcd_putc(' ');
 		}
 	*/	
-		lcd_puts(outstring);
-		lcddelay_ms(2);
+		//lcd_puts(outstring);
+		//lcddelay_ms(2);
 }
 
 
@@ -742,8 +742,8 @@ void lcd_put_tempAbMinus20(uint16_t temperatur)
 		outstring[1]=buffer[4];
 		outstring[0]=Vorzeichen;
 		}
-		lcd_puts(outstring);
-		lcddelay_ms(2);
+		//lcd_puts(outstring);
+		//lcddelay_ms(2);
 }
 
 
