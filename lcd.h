@@ -106,6 +106,7 @@ void lcd_puts(const char *s);
 void lcd_putint(uint8_t zahl);
 void lcd_putint1(uint8_t zahl);
 void lcd_putint2(uint8_t zahl);
+void lcd_putint12(uint16_t zahl);
 void lcd_putint16(uint16_t zahl);
 void lcd_puthex(uint8_t zahl);
 void lcd_cls(void);

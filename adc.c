@@ -56,12 +56,13 @@ void initADC(uint8_t derKanal)
   ADMUX = derKanal;                      // Ÿbergebenen Kanal waehlen
 //	REFS0 und REFS1 LO: Externe Referenzspannung
 //	ADMUX |= (1<<REFS1) | (1<<REFS0); // interne Referenzspannung nutzen 
-//	ADMUX |= (1<<REFS0); // VCC als Referenzspannung nutzen 
+	ADMUX |= (1<<REFS0); // VCC als Referenzspannung nutzen 
  
   /* nach Aktivieren des ADC wird ein "Dummy-Readout" empfohlen, man liest
      also einen Wert und verwirft diesen, um den ADC "warmlaufen zu lassen" */
   ADCSRA |= (1<<ADSC);              // eine ADC-Wandlung (Der ADC setzt dieses Bit ja wieder auf 0 nach dem Wandeln)
-  while ( ADCSRA & (1<<ADSC) ) {
+  while ( ADCSRA & (1<<ADSC) )
+  {
      ;     // auf Abschluss der Wandlung warten 
   }
 }

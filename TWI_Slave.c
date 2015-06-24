@@ -48,8 +48,10 @@
 #define UHRPIN 0
 
 #define SERVOPORT	PORTD		// Ausgang fuer Servo
+#define SERVODDR  DDRD
 #define SERVOPIN0 7				// Impuls für Servo
 #define SERVOPIN1 6				// Enable fuer Servo, Active H
+#define SERVOCONTROLPIN 5 // LED
 
 // Definitionen fuer mySlave PORTD
 //#define UHREIN 4
@@ -185,10 +187,10 @@ void slaveinit(void)
 	DDRD |= (1<<DDD1);		//Pin 1 von PORT D als Ausgang fuer Schalter: OFF
 	DDRD |= (1<<DDD2);		//Pin 2 von PORT D als Ausgang fuer Buzzer
  	DDRD |= (1<<DDD3);		//Pin 3 von PORT D als Ausgang fuer LED TWI
-	DDRD |= (1<<DDD4);		//Pin 4 von PORT D als Ausgang fuer LED
-	DDRD |= (1<<DDD5);		//Pin 5 von PORT D als Ausgang fuer LED Loop
- 	DDRD |= (1<<SERVOPIN1);	//Pin 6 von PORT D als Ausgang fuer Servo-Enable
-	DDRD |= (1<<SERVOPIN0);	//Pin 7 von PORT D als Ausgang fuer Servo-Impuls
+	DDRD |= (1<<LOOPLED);		//Pin 4 von PORT D als Ausgang fuer loop-LED
+	SERVODDR |= (1<<SERVOCONTROLPIN);		//Pin 5 von PORT D als Ausgang fuer LED Servo
+ 	SERVODDR |= (1<<SERVOPIN1);	//Pin 6 von PORT D als Ausgang fuer Servo-Enable
+	SERVODDR |= (1<<SERVOPIN0);	//Pin 7 von PORT D als Ausgang fuer Servo-Impuls
 	
 	
 	DDRB &= ~(1<<PB0);	//Bit 0 von PORT B als Eingang für Taste 1
@@ -214,9 +216,9 @@ void slaveinit(void)
 	SlaveStatus |= (1<<TWI_WAIT_BIT);
 
 	
-	DDRC &= ~(1<<DDC0);	//Pin 0 von PORT C als Eingang fuer ADC 	
+	DDRC &= ~(1<<INNEN);	//Pin 0 von PORT C als Eingang fuer ADC
 //	PORTC |= (1<<DDC0); //Pull-up
-	DDRC &= ~(1<<DDC1);	//Pin 1 von PORT C als Eingang fuer ADC 	
+	DDRC &= ~(1<<AUSSEN);	//Pin 1 von PORT C als Eingang fuer ADC
 //	PORTC |= (1<<DDC1); //Pull-up
 	DDRC &= ~(1<<DDC2);	//Pin 2 von PORT C als Eingang fuer ADC 	
 //	PORTC |= (1<<DDC3); //Pull-up
@@ -305,7 +307,7 @@ ISR(TIMER0_OVF_vect)
 			{
 				SERVOPORT |= (1<<SERVOPIN0); // Schaltet Impuls an SERVOPIN0 ein
 			}
-			SERVOPORT |= (1<<5);// Kontrolle auf PIN D5
+			SERVOPORT |= (1<<SERVOCONTROLPIN);// Kontrolle auf PIN D5 ON
 		}
 		Servopause=0;
 	}
@@ -318,7 +320,7 @@ ISR(TIMER2_COMP_vect) // Schaltet Impuls an SERVOPIN0 aus
 //		lcd_puts("Timer2 Comp\0");
 		TCCR2=0;
 		SERVOPORT &= ~(1<<SERVOPIN0);//	SERVOPIN0 zuruecksetzen
-		SERVOPORT &= ~(1<<5);// Kontrolle auf PIN D5 OFF
+		SERVOPORT &= ~(1<<SERVOCONTROLPIN);// Kontrolle auf PIN D5 OFF
 		//delay_ms(800);
 		//lcd_clr_line(1);
 		
@@ -353,7 +355,7 @@ void main (void)
    lcd_puts("Guten Tag\0");
    delay_ms(1000);
    lcd_cls();
-   lcd_puts("BUERO\0");
+   lcd_puts("BUERO 62\0");
    
    BUEROPORT &= ~(1<<UHREIN);//	UHREIN sicher low
    BUEROPORT &= ~(1<<UHRAUS);//	UHRAus sicher low
@@ -483,13 +485,13 @@ void main (void)
                   
                   
                }
-               /*
-                lcd_gotoxy(0,12);
+               
+                lcd_gotoxy(1,10);
                 lcd_puts("R:\0");
                 lcd_putint2(Servorichtung);
                 lcd_puts(" W:\0");
                 lcd_putint2(Servowert);
-                */
+               
                
                
                Servowert=rxbuffer[3];
@@ -545,16 +547,15 @@ void main (void)
          // Temperatur lesen
          initADC(AUSSEN);
          uint16_t temperaturBuffer=(readKanal(AUSSEN));
-         lcd_gotoxy(0,0);
+         lcd_gotoxy(10,0);
          lcd_puts("A \0");
-         //lcd_puthex(temperaturBuffer>>2);
+         //lcd_putint12(temperaturBuffer);
          
          // neues Thermometer
-         //lcd_putint(temperaturBuffer>>2);
-         lcd_put_tempAbMinus20((temperaturBuffer>>2));
+         
          //lcd_puts("A0+\0");
-         //lcd_put_tempbis99(temperaturBuffer>>1);//Doppelte Auflösung
-         txbuffer[AUSSEN]=(temperaturBuffer>>2);
+         lcd_put_tempbis99(temperaturBuffer>>1);//Doppelte Auflösung
+         txbuffer[AUSSEN]=(temperaturBuffer>>1);
          //txbuffer[AUSSEN]=0x37;
          //	initADC(RUECKLAUF);
          
@@ -566,10 +567,6 @@ void main (void)
          
          //	PIN B4 abfragen
          txbuffer[4]=(PINB & (1<< 4));
-         
-         
-         
-         
          
          rxdata=0;
          
