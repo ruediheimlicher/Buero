@@ -568,6 +568,8 @@ void main (void)
          //	PIN B4 abfragen
          txbuffer[4]=(PINB & (1<< 4));
          
+         txbuffer[7]=1;
+         
          rxdata=0;
          
          

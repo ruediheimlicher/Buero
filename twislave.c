@@ -324,7 +324,7 @@ ISR (TWI_vect)
 			
 			TWDR = txbuffer[buffer_adr]; //Datenbyte senden 
 			buffer_adr++; //bufferadresse für nächstes Byte weiterzählen
-			if(buffer_adr<(buffer_size-1)) //im Buffer ist mehr als ein Byte, das gesendet werden kann
+			if(buffer_adr<(buffer_size)) //im Buffer ist mehr als ein Byte, das gesendet werden kann
 			{
 				twi |=(1<<3);
 				TWCR_ACK; //nächstes Byte senden, danach ACK erwarten
