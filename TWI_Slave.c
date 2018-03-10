@@ -66,7 +66,7 @@
 
 // Define fuer Slave:
 #define LOOPLED			4
-#define TWILED			5
+
 
 // Define fuer mySlave PORTD:
 //#define LOOPLED			2
@@ -558,12 +558,6 @@ void main (void)
          txbuffer[AUSSEN]=(temperaturBuffer>>1);
          //txbuffer[AUSSEN]=0x37;
          //	initADC(RUECKLAUF);
-         
-         //txbuffer[RUECKLAUF]=temperaturBuffer>>2;
-         
-         
-         
-         
          
          //	PIN B4 abfragen
          txbuffer[4]=(PINB & (1<< 4));
