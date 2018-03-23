@@ -202,7 +202,7 @@ ISR (TWI_vect)
 	//lcd_puthex(TW_STATUS);
 	//twidelay_ms(lcd_delay);
 	TWI_Pause=0; // Servo ausschalten
-	rxdata=1;
+	rxdata=0;
 	switch (TW_STATUS) //TWI-Statusregister prüfen und nötige Aktion bestimmen 
 	{
 			
