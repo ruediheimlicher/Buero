@@ -130,6 +130,7 @@ uint8_t ServoimpulsSchrittweite=10;
 uint8_t Servoposition[]={23,33,42,50,60};
 volatile uint16_t ADCImpuls=0;
 
+volatile uint8_t twicount=0;
 volatile uint8_t twi=0;
 uint8_t EEMEM WDT_ErrCount0;	// Akkumulierte WDT Restart Events
 uint8_t EEMEM WDT_ErrCount1;	// WDT Restart Events nach wdt-reset
@@ -447,14 +448,19 @@ void main (void)
       
       if ((SlaveStatus & (1<<TWI_OK_BIT)) && (rxdata))
       {
-         /*
+         twicount++;
           lcd_cls();
-          lcd_gotoxy(7,1);
+         lcd_gotoxy(0,0);
+         lcd_puthex(twicount);
+          lcd_gotoxy(6,1);
           lcd_puthex(twi);
+         lcd_putc(' ');
           lcd_puthex(rxbuffer[0]);
           lcd_puthex(rxbuffer[1]);
+         lcd_puthex(rxbuffer[2]);
+         lcd_puthex(rxbuffer[3]);
           
-          */
+          
          
          {
             //
@@ -485,13 +491,13 @@ void main (void)
                   
                   
                }
-               
+               /*
                 lcd_gotoxy(1,10);
                 lcd_puts("R:\0");
                 lcd_putint2(Servorichtung);
                 lcd_puts(" W:\0");
                 lcd_putint2(Servowert);
-               
+               */
                
                
                Servowert=rxbuffer[3];
