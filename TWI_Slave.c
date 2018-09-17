@@ -449,12 +449,12 @@ void main (void)
       if ((SlaveStatus & (1<<TWI_OK_BIT)) && (rxdata))
       {
          twicount++;
-          lcd_cls();
+         lcd_cls();
          lcd_gotoxy(0,0);
          lcd_puthex(twicount);
           lcd_gotoxy(6,1);
-          lcd_puthex(twi);
-         lcd_putc(' ');
+          //lcd_puthex(twi);
+         //lcd_putc(' ');
           lcd_puthex(rxbuffer[0]);
           lcd_puthex(rxbuffer[1]);
          lcd_puthex(rxbuffer[2]);
@@ -518,7 +518,7 @@ void main (void)
          lcd_puthex(buerostatus);
          //sei();
          //delay_ms(1000);
-         if ( buerostatus  & (1<<UHRPIN))
+         if ( buerostatus  & (1<<UHRPIN)) // 0
          {
             //delay_ms(1000);
             //Schaltuhr ein
