@@ -131,7 +131,8 @@ uint8_t Servoposition[]={23,33,42,50,60};
 volatile uint16_t ADCImpuls=0;
 
 volatile uint8_t twicount=0;
-volatile uint8_t twi=0;
+volatile uint8_t twir=0;
+volatile uint8_t twiw=0;
 uint8_t EEMEM WDT_ErrCount0;	// Akkumulierte WDT Restart Events
 uint8_t EEMEM WDT_ErrCount1;	// WDT Restart Events nach wdt-reset
 
@@ -453,12 +454,23 @@ void main (void)
          lcd_gotoxy(0,0);
          lcd_puthex(twicount);
           lcd_gotoxy(6,1);
-          //lcd_puthex(twi);
-         //lcd_putc(' ');
-          lcd_puthex(rxbuffer[0]);
-          lcd_puthex(rxbuffer[1]);
-         lcd_puthex(rxbuffer[2]);
-         lcd_puthex(rxbuffer[3]);
+          lcd_puthex(twir);
+         //twir=0;
+         lcd_putc(' ');
+         lcd_puthex(twiw);
+         lcd_putc(' ');
+         //twiw=0;
+         /*
+          BueroTXdaten[1] = Zeit.stunde;
+          BueroTXdaten[2] = Zeit.minute;
+          BueroTXdaten[3] = Stundencode;
+          BueroTXdaten[4] = Stundencode;
+          */
+         //lcd_puthex(rxbuffer[0]);
+         //lcd_puthex(rxbuffer[1]);
+         //lcd_puthex(rxbuffer[2]);
+         lcd_puthex(rxbuffer[6]);
+         lcd_puthex(rxbuffer[7]);
           
           
          
@@ -554,7 +566,7 @@ void main (void)
          initADC(AUSSEN);
          uint16_t temperaturBuffer=(readKanal(AUSSEN));
          lcd_gotoxy(10,0);
-         lcd_puts("A \0");
+         lcd_puts("A");
          //lcd_putint12(temperaturBuffer);
          
          // neues Thermometer
@@ -568,7 +580,8 @@ void main (void)
          //	PIN B4 abfragen
          txbuffer[4]=(PINB & (1<< 4));
          
-         txbuffer[7]=1;
+         txbuffer[6]=88;
+         txbuffer[7]=99;
          
          rxdata=0;
          
