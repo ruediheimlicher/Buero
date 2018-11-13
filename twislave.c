@@ -91,6 +91,7 @@ uint8_t lcd_delay=1;
 extern volatile uint8_t TWI_Pause;
 extern volatile uint8_t twir;
 extern volatile uint8_t twiw;
+extern volatile uint8_t readcount;
 
 //%%%%%%%% ab hier sind normalerweise keine weiteren Änderungen erforderlich! %%%%%%%%//
 //____________________________________________________________________________________//
@@ -113,32 +114,6 @@ extern volatile uint8_t twiw;
 #endif
 
 
-void BlinkD3(uint8_t anz)
-{
-	uint8_t k=0;
-	for (k=0;k<anz;k++)
-	{
-		PORTD |=(1<<PD3);
-		twidelay_ms(50);
-		PORTD &=~(1<<PD3);
-		twidelay_ms(100);
-		
-	}
-	PORTD &=~(1<<PD3);
-}
-
-
-void twidelay_ms(unsigned int ms)
-/* delay for a minimum of <ms> */
-{
-	// we use a calibrated macro. This is more
-	// accurate and not so much compiler dependent
-	// as self made code.
-	while(ms){
-		_delay_ms(0.96);
-		ms--;
-	}
-}
 
 
 volatile uint8_t buffer_adr; //"Adressregister" für den Buffer
@@ -196,124 +171,104 @@ ein Statuscode, anhand dessen die Situation festgestellt werden kann.
 */
 ISR (TWI_vect)  
 {
-	wdt_reset();
-	uint8_t data=0;
-	//		BlinkD3(2);
-	//lcd_cls();
-	//lcd_puts("ISR\0");
-	//lcd_puthex(TW_STATUS);
-	//twidelay_ms(lcd_delay);
-	TWI_Pause=0; // Servo ausschalten
-	rxdata=0;
-	switch (TW_STATUS) //TWI-Statusregister prüfen und nötige Aktion bestimmen 
-	{
-			
-		case TW_SR_SLA_ACK: // 0x60 Slave Receiver, wurde adressiert	
-			twir |=(1<<0);
+   wdt_reset();
+   uint8_t data=0;
+   TWI_Pause=0; // Servo ausschalten
+   rxdata=0;
+   switch (TW_STATUS) //TWI-Statusregister prüfen und nötige Aktion bestimmen 
+   {
+         // Slave Receiver 	
+      case TW_SR_SLA_ACK: // 0x60 Slave Receiver, wurde adressiert	
+         twir |=(1<<0);
          twiw |=(1<<0);
-			TWCR_ACK; // nächstes Datenbyte empfangen, ACK danach
-			
-			//		buffer_adr=0xFF; //Bufferposition ist undefiniert
-			
-			break;
-			
-		case TW_SR_DATA_ACK: // 0x80 Slave Receiver, Daten empfangen
-			data=TWDR; //Empfangene Daten auslesen
-			twir |=(1<<1);
-			if (buffer_adr == 0xFF) //erster Zugriff, Bufferposition setzen
-			{
-				//Kontrolle ob gewünschte Adresse im erlaubten bereich
-				if(data<buffer_size)
-				{
+         TWCR_ACK; // nächstes Datenbyte empfangen, ACK danach
+         
+         buffer_adr=0xFF; //Bufferposition ist undefiniert
+         
+         break;
+         
+      case TW_SR_DATA_ACK: // 0x80 Slave Receiver, Daten empfangen
+         data=TWDR; //Empfangene Daten auslesen
+         twir |=(1<<1);
+         if (buffer_adr == 0xFF) //erster Zugriff, Bufferposition setzen
+         {
+            //Kontrolle ob gewünschte Adresse im erlaubten bereich
+            if(data<buffer_size+1)
+            {
                twir |=(1<<2);
-					buffer_adr= data; //Bufferposition wie adressiert setzen
-				}
-				else
-				{
+               buffer_adr= data; //Bufferposition wie adressiert setzen
+            }
+            else
+            {
                twir |=(1<<3);
-					buffer_adr=0; //Adresse auf Null setzen. Ist das sinnvoll?
-				}				
-				TWCR_ACK;	// nächstes Datenbyte empfangen, ACK danach, um nächstes Byte anzufordern
-			}
-			else //weiterer Zugriff, Daten empfangen
-			{
-            
-				if (buffer_adr==0)
-				{
-					//lcd_cls();
-					
-				}
-
-            rxbuffer[buffer_adr]=data;	//	Daten in Buffer schreiben
-				rxdata=1;
-
-            buffer_adr++;				//	Buffer-Adresse weiterzählen für nächsten Schreibzugriff
-				if(buffer_adr<(buffer_size)) //im Buffer ist noch Platz für mehr als ein Byte
-				{
-               twir |=(1<<4);
-					
-					TWCR_ACK;// nächstes Datenbyte empfangen, ACK danach, um nächstes Byte anzufordern
-				}
-				else   //es kann nur noch ein Byte kommen, dann ist der Buffer voll
-				{
+               buffer_adr=0; //Adresse auf Null setzen. Ist das sinnvoll?
+            }				
+            TWCR_ACK;	// nächstes Datenbyte empfangen, ACK danach, um nächstes Byte anzufordern
+         }
+         else //weiterer Zugriff, Daten empfangen
+         {
+            twir |=(1<<4);
+            if(buffer_adr<buffer_size+1)
+            {
                twir |=(1<<5);
-					buffer_adr = 0xFF;		// buffer_adr wieder als undefiniert setzen
-					TWCR_NACK;//letztes Byte lesen, dann NACK, um vollen Buffer zu signaliseren
-					rxdata=1;
-				}
-			}
-			break;
-			
-			case TW_ST_SLA_ACK: //?!?
-			case TW_ST_DATA_ACK: //0xB8 Slave Transmitter, weitere Daten wurden angefordert
-			//		lcd_gotoxy(0,0);
-			//		lcd_puts("W\0");
-			//		twidelay_ms(lcd_delay);
-			twiw |=(1<<1);
-			if (buffer_adr == 0xFF) //zuvor keine Leseadresse angegeben! 
-			{
-				
-				buffer_adr=0;
-			}	
-			//			lcd_gotoxy(3,0);
-			//		lcd_puts("adr: \0");
-			//		lcd_putint(buffer_adr);
-			//		lcd_putc(' ');
-			//		lcd_putint(txbuffer[buffer_adr]);
-			
-			TWDR = txbuffer[buffer_adr]; //Datenbyte senden 
-			buffer_adr++; //bufferadresse für nächstes Byte weiterzählen
-			if(buffer_adr<(buffer_size)) //im Buffer ist mehr als ein Byte, das gesendet werden kann
-			{
-				twiw |=(1<<3);
-				TWCR_ACK; //nächstes Byte senden, danach ACK erwarten
-			}
-			else
-			{
-				twiw |=(1<<4);
-				//				lcd_gotoxy(16,0);
-				//				lcd_puts("NACK\0");
-				
-				TWCR_NACK; //letztes Byte senden, danach NACK erwarten
-				buffer_adr=0xFF; //Bufferposition ist undefiniert
-			}
-			break;
-			
-			case TW_ST_DATA_NACK: //0xC0 Keine Daten mehr gefordert 
-			
-			
-			twiw |=(1<<7);
-			case TW_SR_DATA_NACK: //0x88 
-			case TW_ST_LAST_DATA: //0xC8  Last data byte in TWDR has been transmitted (TWEA = “0”); ACK has been received
-			case TW_SR_STOP: // 0xA0 STOP empfangen
-			default: 	
-			TWCR_RESET; //Übertragung beenden, warten bis zur nächsten Adressierung
-			//		buffer_adr=0xFF; //Bufferposition ist undefiniert
-			TWI_Pause=1;
-			break;
-			
-			
-	} //end.switch (TW_STATUS)
+               rxbuffer[buffer_adr]=data; //Daten in Buffer schreibe   
+               readcount++;
+               
+               if (buffer_adr == 7)
+               {
+                  twir |=(1<<7);
+                  rxdata=1;
+               }
+            }
+            //rxdata=1;
+            buffer_adr++; //Buffer-Adresse weiterzählen für nächsten Schreibzugriff
+            TWCR_ACK; 
+         }
+         break;
+         
+      case TW_ST_SLA_ACK: //?!?
+      case TW_ST_DATA_ACK: //0xB8 Slave Transmitter, weitere Daten wurden angefordert
+         //		lcd_gotoxy(0,0);
+         //		lcd_puts("W\0");
+         //		twidelay_ms(lcd_delay);
+         twiw |=(1<<1);
+         if (buffer_adr == 0xFF) //zuvor keine Leseadresse angegeben! 
+         {				
+            buffer_adr=0;
+         }	
+         
+         TWDR = txbuffer[buffer_adr]; //Datenbyte senden 
+         buffer_adr++; //bufferadresse für nächstes Byte weiterzählen
+         if(buffer_adr<(buffer_size)) //im Buffer ist mehr als ein Byte, das gesendet werden kann
+         {
+            twiw |=(1<<3);
+            TWCR_ACK; //nächstes Byte senden, danach ACK erwarten
+         }
+         else
+         {
+            twiw |=(1<<4);
+            TWCR_NACK; //letztes Byte senden, danach NACK erwarten
+            buffer_adr=0xFF; //Bufferposition ist undefiniert
+         }
+         break;
+         
+      case TW_ST_DATA_NACK: //0xC0 Keine Daten mehr gefordert 
+         
+         twiw |=(1<<7);
+         
+      case TW_SR_STOP:
+         TWCR_ACK;
+         break;
+      case TW_SR_DATA_NACK: //0x88 
+      case TW_ST_LAST_DATA: //0xC8  Last data byte in TWDR has been transmitted (TWEA = “0”); ACK has been received
+         //	case TW_SR_STOP: // 0xA0 STOP empfangen // 20181113 
+      default: 	
+         TWCR_RESET; //Übertragung beenden, warten bis zur nächsten Adressierung
+         TWI_Pause=1;
+         break;
+         
+         
+   } //end.switch (TW_STATUS)
 } //end.ISR(TWI_vect)
 
 #endif

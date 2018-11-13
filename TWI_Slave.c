@@ -131,24 +131,12 @@ uint8_t Servoposition[]={23,33,42,50,60};
 volatile uint16_t ADCImpuls=0;
 
 volatile uint8_t twicount=0;
+volatile uint8_t readcount=0;
 volatile uint8_t twir=0;
 volatile uint8_t twiw=0;
 uint8_t EEMEM WDT_ErrCount0;	// Akkumulierte WDT Restart Events
 uint8_t EEMEM WDT_ErrCount1;	// WDT Restart Events nach wdt-reset
 
-void RingD2(uint8_t anz)
-{
-	uint8_t k=0;
-	for (k=0;k<2*anz;k++)
-	{
-		PORTD |=(1<<BUZZERPIN);
-		twidelay_ms(2);
-		PORTD &=~(1<<BUZZERPIN);
-		twidelay_ms(2);
-		
-	}
-	PORTD &=~(1<<BUZZERPIN);
-}
 
 
 uint8_t Tastenwahl(uint8_t Tastaturwert)
@@ -453,12 +441,15 @@ void main (void)
          lcd_cls();
          lcd_gotoxy(0,0);
          lcd_puthex(twicount);
-          lcd_gotoxy(6,1);
+         
+         /*
+          lcd_gotoxy(4,0);
           lcd_puthex(twir);
          //twir=0;
          lcd_putc(' ');
          lcd_puthex(twiw);
          lcd_putc(' ');
+         */
          //twiw=0;
          /*
           BueroTXdaten[1] = Zeit.stunde;
@@ -466,11 +457,20 @@ void main (void)
           BueroTXdaten[3] = Stundencode;
           BueroTXdaten[4] = Stundencode;
           */
-         //lcd_puthex(rxbuffer[0]);
-         //lcd_puthex(rxbuffer[1]);
-         //lcd_puthex(rxbuffer[2]);
+         /*
+         lcd_gotoxy(0,1);
+         lcd_puthex(rxbuffer[0]);
+         lcd_puthex(rxbuffer[1]);
+         lcd_puthex(rxbuffer[2]);
+*/
+         lcd_gotoxy(6,1);
+         //lcd_puthex(rxbuffer[3]);
+         //lcd_puthex(rxbuffer[4]);
+         lcd_puthex(rxbuffer[5]);
          lcd_puthex(rxbuffer[6]);
          lcd_puthex(rxbuffer[7]);
+         //lcd_puthex(readcount);
+         //readcount=0;
           
           
          
@@ -524,9 +524,10 @@ void main (void)
          //delay_ms(20);
          
          buerostatus=rxbuffer[0];
+ //        lcd_gotoxy(0,1);
          lcd_gotoxy(0,1);
          //cli();
-         lcd_puts("St:\0");
+         lcd_puts("St");
          lcd_puthex(buerostatus);
          //sei();
          //delay_ms(1000);
@@ -579,9 +580,9 @@ void main (void)
          
          //	PIN B4 abfragen
          txbuffer[4]=(PINB & (1<< 4));
-         
-         txbuffer[6]=88;
-         txbuffer[7]=99;
+         txbuffer[5]=77;
+         txbuffer[6]=87;
+         txbuffer[7]=98;
          
          rxdata=0;
          
