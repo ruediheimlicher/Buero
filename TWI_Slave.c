@@ -455,10 +455,17 @@ void main (void)
           lcd_gotoxy(6,1);
           //lcd_puthex(twi);
          //lcd_putc(' ');
-          lcd_puthex(rxbuffer[0]);
-          lcd_puthex(rxbuffer[1]);
+         /*
+          BueroTXdaten[1] = Zeit.stunde;
+          BueroTXdaten[2] = Zeit.minute;
+          BueroTXdaten[3] = Stundencode;
+          BueroTXdaten[4] = Stundencode;
+          */
+         lcd_puthex(rxbuffer[0]);
+         lcd_puthex(rxbuffer[1]);
          lcd_puthex(rxbuffer[2]);
          lcd_puthex(rxbuffer[3]);
+         lcd_puthex(rxbuffer[4]);
           
           
          
@@ -554,7 +561,7 @@ void main (void)
          initADC(AUSSEN);
          uint16_t temperaturBuffer=(readKanal(AUSSEN));
          lcd_gotoxy(10,0);
-         lcd_puts("A \0");
+         lcd_puts("A");
          //lcd_putint12(temperaturBuffer);
          
          // neues Thermometer
