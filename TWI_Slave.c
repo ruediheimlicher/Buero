@@ -569,6 +569,7 @@ void main (void)
          //lcd_puts("A0+\0");
          lcd_put_tempbis99(temperaturBuffer>>1);//Doppelte Auflšsung
          txbuffer[AUSSEN]=(temperaturBuffer>>1);
+         txbuffer[INNEN]=(temperaturBuffer>>1);
          //txbuffer[AUSSEN]=0x37;
          //	initADC(RUECKLAUF);
          
