@@ -33,12 +33,13 @@
 #include <inttypes.h>
 
 /* AVR port and pins connected to '164 and/or LCD */
-#define LCD_PORT                PORTB
+#define LCD_PORT                PORTD
+#define LCD_DDR                DDRD
 
 //	defines fuer Slave:
-#define LCD_RSDS_PIN            5
-#define LCD_ENABLE_PIN          6
-#define LCD_CLOCK_PIN           7
+#define LCD_RSDS_PIN            2
+#define LCD_ENABLE_PIN          1
+#define LCD_CLOCK_PIN           0
 
 //	defines fuer mySlave:
 //#define LCD_RSDS_PIN            3
@@ -46,7 +47,7 @@
 //#define LCD_CLOCK_PIN           5
 
 
-#define LCD_BACKLIGHT_PIN       7
+//#define LCD_BACKLIGHT_PIN       7
 
 /* number of columns on the display */
 #define LCD_COLS 20
@@ -76,7 +77,7 @@
 #define LCD_FUNCTION_8x2        0x38   /* 5x7 characters, 2 line display */
 
 //Fleury
-#define LCD_LINES           2     /**< number of visible lines of the display */
+#define LCD_LINES           4     /**< number of visible lines of the display */
 #define LCD_DISP_LENGTH    20     /**< visibles characters per line of the display */
 #define LCD_START_LINE1  0x00     /**< DDRAM address of first char of line 1 */
 #define LCD_START_LINE2  0x40     /**< DDRAM address of first char of line 2 */

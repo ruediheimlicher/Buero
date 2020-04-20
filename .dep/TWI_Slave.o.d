@@ -19,7 +19,12 @@ TWI_Slave.o: TWI_Slave.c \
  /usr/local/CrossPack-AVR-20131216/avr/include/avr/wdt.h twislave.c \
  /usr/local/CrossPack-AVR-20131216/avr/include/util/twi.h \
  /usr/local/CrossPack-AVR-20131216/avr/include/avr/interrupt.h lcd.c \
- lcd.h /usr/local/CrossPack-AVR-20131216/avr/include/stdlib.h adc.c adc.h
+ lcd.h /usr/local/CrossPack-AVR-20131216/avr/include/stdlib.h adc.c adc.h \
+ irmp.c /usr/local/CrossPack-AVR-20131216/avr/include/stdio.h \
+ /usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/include/stdarg.h \
+ /usr/local/CrossPack-AVR-20131216/avr/include/string.h \
+ /usr/local/CrossPack-AVR-20131216/avr/include/avr/pgmspace.h \
+ irmpconfig.h irmp.h
 
 /usr/local/CrossPack-AVR-20131216/avr/include/avr/io.h:
 
@@ -72,3 +77,17 @@ lcd.h:
 adc.c:
 
 adc.h:
+
+irmp.c:
+
+/usr/local/CrossPack-AVR-20131216/avr/include/stdio.h:
+
+/usr/local/CrossPack-AVR-20131216/lib/gcc/avr/4.8.1/include/stdarg.h:
+
+/usr/local/CrossPack-AVR-20131216/avr/include/string.h:
+
+/usr/local/CrossPack-AVR-20131216/avr/include/avr/pgmspace.h:
+
+irmpconfig.h:
+
+irmp.h:
