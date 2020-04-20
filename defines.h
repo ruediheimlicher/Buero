@@ -8,6 +8,13 @@
 #ifndef defines_h
 #define defines_h
 
+#define AUDIO_A   0
+#define AUDIO_B   1
+#define AUDIO_C   2
+#define AUDIO_D   3
+
+#define KANALDELAY   10
+#define OUTPUTDELAY  20
 /* remote control address and command codes */
 
 #define MY_REMOTE   0x916e

@@ -17,7 +17,7 @@
 #include <inttypes.h>
 #include <avr/wdt.h>
 
-#include "twislave.c"
+//#include "twislave.c"
 #include "lcd.c"
 
 #include "adc.c"
@@ -34,6 +34,7 @@ extern IRMP_DATA   irmp_data;
 
 #define toggleA PORTC ^= (1<<PC4)
 #define toggleB PORTC ^= (1<<PC5)
+
 #define TWI_PORT		PORTC
 #define TWI_PIN		PINC
 #define TWI_DDR		DDRC
@@ -41,8 +42,7 @@ extern IRMP_DATA   irmp_data;
 #define SDAPIN		4 // PORT C
 #define SCLPIN		5
 
-#define TWI_WAIT_BIT		3
-#define TWI_OK_BIT		4
+
 
 #define STARTDELAYBIT	0
 #define HICOUNTBIT		1
@@ -59,9 +59,6 @@ extern IRMP_DATA   irmp_data;
 #define SERVOPIN1 6				// Enable fuer Servo, Active H
 #define SERVOCONTROLPIN 5 // LED
 
-// Definitionen fuer mySlave PORTD
-//#define UHREIN 4
-//#define UHRAUS 5
 
 // Definitionen Slave Buero
 #define UHREIN 0
@@ -93,10 +90,6 @@ uint8_t EEMEM WDT_ErrCount1;	// WDT Restart Events nach wdt-reset
 
 void eep_write_wochentag(uint8_t *ablauf[24], uint8_t *tag);
 
-volatile uint8_t rxbuffer[buffer_size];
-
-/*Der Sendebuffer, der vom Master ausgelesen werden kann.*/
-volatile uint8_t txbuffer[buffer_size];
 
 static volatile uint8_t SlaveStatus=0x00; //status
 
@@ -137,8 +130,20 @@ extern volatile uint8_t protokoll;
 extern volatile uint8_t adresse;
 extern volatile uint8_t code;
 extern volatile uint16_t irmpcontrolD;
+
+volatile uint8_t inputstatus = 0; // Eingaenge am ADC abfragen
+
+uint16_t kanaldelayA = KANALDELAY;
+uint16_t kanaldelayB = KANALDELAY;
+uint16_t kanaldelayC= KANALDELAY;
+uint16_t kanaldelayD = KANALDELAY;
+
+uint16_t outputdelay = OUTPUTDELAY;
+
+uint16_t timer1counter = 0;
+uint16_t sekundencounter = 0;
 /* evaluate an IR remote signal */
-void audio_remote(void)
+void audio_remote(uint8_t command)
 {
    if (   irmp_data.protocol != IRMP_NEC_PROTOCOL
        || irmp_data.address  != MY_REMOTE) {
@@ -146,7 +151,7 @@ void audio_remote(void)
    }
    uint16_t cmd = irmp_data.command;
    //audio_remote_command = cmd;
-   switch (cmd)
+   switch (command)
    {
          
    }
@@ -220,6 +225,16 @@ ISR(TIMER1_COMPA_vect)                                                          
    (void) irmp_ISR();
    //audio_remote();                                                        // call irmp ISR
    // call other timer interrupt routines...
+   inputstatus = PINC & 0x0F;
+   
+   timer1counter++;
+   if (timer1counter >= F_INTERRUPTS)
+   {
+      timer1counter = 0;
+      sekundencounter++;
+      toggleA;
+   }
+ 
 }
 
 void slaveinit(void)
@@ -234,6 +249,18 @@ void slaveinit(void)
    DDRC |= (1<<PC5);   //Ausgang fuer control B
    PORTC |= (1<<PC5);   //Pull-up
 
+   DDRB |= (1<<PB0);   //Ausgang fuer Verstaerker
+   PORTB &= ~(1<<PB0);   //LO
+
+   DDRC &= ~(1<<AUDIO_A);  // Eingang von Audioquellen
+   PORTC &= ~(1<<AUDIO_A); // LO
+   DDRC &= ~(1<<AUDIO_B);
+   PORTC &= ~(1<<AUDIO_B); // LO
+   DDRC &= ~(1<<AUDIO_C);
+   PORTC &= ~(1<<AUDIO_C); // LO
+   DDRC &= ~(1<<AUDIO_D);
+   PORTC &= ~(1<<AUDIO_D); // LO
+   
 	//LCD
 	LCD_DDR |= (1<<LCD_RSDS_PIN);	//Pin 4 von PORT B als Ausgang fuer LCD
  	LCD_DDR |= (1<<LCD_ENABLE_PIN);	//Pin 5 von PORT B als Ausgang fuer LCD
@@ -341,10 +368,10 @@ void main (void)
          LOOPLEDPORT ^=(1<<LOOPLED);
          //delay_ms(10);
          TastaturCount++;
-         lcd_gotoxy(13,1);
-         lcd_putint(TastaturCount);
-         lcd_gotoxy(17,1);
-         lcd_putint(timer1count);
+         //lcd_gotoxy(13,1);
+         //lcd_putint(TastaturCount);
+         //lcd_gotoxy(17,1);
+         //lcd_putint(timer1count);
          lcd_gotoxy(0,3);
          lcd_putint(protokoll);
          protokoll=0;
@@ -358,7 +385,35 @@ void main (void)
          lcd_putint12(irmpcontrolD);
          irmpcontrolD=0;
          lcd_putc(' ');
+         lcd_gotoxy(0,2);
+         lcd_puthex(inputstatus);
+         lcd_putc(' ');
+         lcd_putint12(outputdelay);
+         if (inputstatus > 0)
+         {
+            outputdelay = OUTPUTDELAY;
+            //PORTB |= (1<<PB0);
+         }
+         else
+         {
+            if (outputdelay)
+            {
+               outputdelay--;
+            }
+            
+            //PORTB &= ~(1<<PB0);
+         }
          
+         if (outputdelay)
+         {
+            PORTB |= (1<<PB0); // ON
+         }
+         else
+         {
+            PORTB &= ~(1<<PB0); // OFF
+         }
+         /*
+          */
       }
       
       PORTB &= ~(1<<PB1); 
@@ -366,17 +421,24 @@ void main (void)
       // IRMP
       if (irmp_get_data (&irmp_data))
       {
+         /*
+         if (   irmp_data.protocol != IRMP_NEC_PROTOCOL
+             || irmp_data.address  != MY_REMOTE) 
+         {
+            
+            return;
+         }
+          */
          // got an IR message, do something
          _delay_ms(25);
- //        timer1count++;
          
-         PORTB |= (1<<PB0);
+    //     PORTB |= (1<<PB0);
          protokoll = irmp_data.protocol;
          adresse = irmp_data.address;
          code = irmp_data.command;
-         
          _delay_ms(25);
-         
+ 
+ 
       }
        
         
